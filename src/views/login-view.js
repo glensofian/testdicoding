@@ -1,36 +1,10 @@
 import loginTemplate from './templates/login.html';
-
-class LoginView {
-  constructor(container) {
-    this._container = container;
-  }
-
-  render() {
-    this._container.innerHTML = loginTemplate;
-  }
-
-  getLoginInput() {
-    const email = document.querySelector('#login-email').value;
-    const password = document.querySelector('#login-password').value;
-    return { email, password };
-  }
-
-  setOnLoginSubmit(callback) {
-    const loginForm = document.querySelector('#login-form');
-    loginForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      callback();
-    });
-  }
-
-  showSuccess(message) {
-    alert(message);
-    window.location.hash = '#/home';
-  }
-
-  showError(message) {
-    alert(message);
-  }
+class LoginView{
+  constructor(c){ this._container=c; }
+  render(){ this._container.innerHTML = loginTemplate; }
+  getLoginInput(){ return { email:document.querySelector('#login-email').value, password:document.querySelector('#login-password').value }; }
+  setOnLoginSubmit(cb){ document.querySelector('#login-form').addEventListener('submit', e=>{ e.preventDefault(); cb(); }); }
+  showSuccess(m){ alert(m); location.hash='#/home'; }
+  showError(m){ alert(m); }
 }
-
 export default LoginView;

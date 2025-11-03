@@ -1,111 +1,65 @@
 import addStoryTemplate from './templates/add-story.html';
 
 class AddStoryView {
-  constructor(container) {
+  constructor(container){
     this._container = container;
     this._stream = null;
     this._photo = null;
     this._latitude = null;
     this._longitude = null;
   }
+  render(){ this._container.innerHTML = addStoryTemplate; this._initCamera(); this._initMap(); }
 
-  render() {
-    this._container.innerHTML = addStoryTemplate;
-    this._initCamera();
-    this._initMap();
-  }
-
-  async _initCamera() {
+  async _initCamera(){
     const video = document.querySelector('#camera-feed');
-    try {
-      this._stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    try{
+      this._stream = await navigator.mediaDevices.getUserMedia({ video:true });
       video.srcObject = this._stream;
-    } catch (err) {
-      this.showError('Tidak bisa mengakses kamera. Pastikan Anda memberikan izin.');
-    }
+    }catch(_){ this.showError('Tidak bisa akses kamera.'); }
   }
 
-  _initMap() {
-    const map = L.map('map').setView([-6.200000, 106.816666], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-
-    const marker = L.marker([-6.200000, 106.816666]).addTo(map);
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng;
-      this._latitude = lat;
-      this._longitude = lng;
+  _initMap(){
+    const map = L.map('map').setView([-6.2,106.816666], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap' }).addTo(map);
+    const marker = L.marker([-6.2,106.816666]).addTo(map);
+    map.on('click', e=>{
+      const {lat,lng} = e.latlng; this._latitude = lat; this._longitude = lng;
       marker.setLatLng(e.latlng);
       document.querySelector('#story-location').value = `Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}`;
     });
   }
 
-  _capturePhoto() {
+  _capturePhoto(){
     const video = document.querySelector('#camera-feed');
     const canvas = document.querySelector('#photo-canvas');
     const preview = document.querySelector('#photo-preview');
-    const context = canvas.getContext('2d');
-
-    if (!video.videoWidth || !video.videoHeight) {
-      this.showError('Kamera belum siap, coba lagi sebentar.');
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => { this._photo = blob; }, 'image/jpeg');
-
-    preview.src = canvas.toDataURL('image/jpeg');
-    preview.classList.remove('hidden');
-    video.classList.add('hidden');
-
-    if (this._stream) {
-      this._stream.getTracks().forEach((t) => t.stop());
-    }
+    const ctx = canvas.getContext('2d');
+    if (!video.videoWidth) return this.showError('Kamera belum siap.');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    canvas.toBlob(b => { this._photo = b; }, 'image/jpeg');
+    preview.src = canvas.toDataURL('image/jpeg'); preview.classList.remove('hidden'); video.classList.add('hidden');
+    this._stream?.getTracks().forEach(t=>t.stop());
   }
 
-  getStoryInput() {
-    const description = document.querySelector('#story-description').value.trim();
+  getStoryInput(){
+    const desc = document.querySelector('#story-description').value.trim();
     const fileInput = document.querySelector('#story-photo');
-
-    let photoBlob = this._photo;
-    if (fileInput.files && fileInput.files.length > 0) {
-      photoBlob = fileInput.files[0];
-    }
-
-    if (!photoBlob || !description) {
-      this.showError('Deskripsi dan foto tidak boleh kosong!');
-      return null;
-    }
-
-    const formData = new FormData();
-    formData.append('photo', photoBlob);
-    formData.append('description', description);
-    if (this._latitude && this._longitude) {
-      formData.append('lat', this._latitude);
-      formData.append('lon', this._longitude);
-    }
-    return formData;
+    let photo = this._photo;
+    if (fileInput.files?.length) photo = fileInput.files[0];
+    if (!photo || !desc){ this.showError('Deskripsi & Foto wajib.'); return null; }
+    const fd = new FormData();
+    fd.append('photo', photo); fd.append('description', desc);
+    if (this._latitude && this._longitude){ fd.append('lat', this._latitude); fd.append('lon', this._longitude); }
+    return fd;
   }
 
-  setOnSubmit(callback) {
-    document.querySelector('#capture-button').addEventListener('click', () => this._capturePhoto());
-    document.querySelector('#add-story-form').addEventListener('submit', (event) => {
-      event.preventDefault();
-      callback();
-    });
+  setOnSubmit(cb){
+    document.querySelector('#capture-button').addEventListener('click', ()=> this._capturePhoto());
+    document.querySelector('#add-story-form').addEventListener('submit', e=>{ e.preventDefault(); cb(); });
   }
 
-  showSuccess(message) {
-    alert(message);
-    window.location.hash = '#/home';
-  }
-
-  showError(message) {
-    alert(message);
-  }
+  showSuccess(msg){ alert(msg); location.hash = '#/home'; }
+  showError(msg){ alert(msg); }
 }
-
 export default AddStoryView;
